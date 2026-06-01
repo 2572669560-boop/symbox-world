@@ -1,0 +1,168 @@
+"""
+AGG AI · 主动学习引擎 · 原型代码
+功能：基于置信度标注，自动识别L4条目并生成探索任务
+"""
+
+import re
+from datetime import datetime
+
+class ActiveLearningEngine:
+    """主动学习引擎：扫描L4条目，生成探索任务"""
+    
+    def __init__(self, knowledge_base_path):
+        """初始化：加载知识库文件"""
+        self.knowledge_base_path = knowledge_base_path
+        self.facts = {}  # 存储所有原子事实
+        self.l1_count = 0
+        self.l2_count = 0
+        self.l3_count = 0
+        self.l4_count = 0
+        self.exploration_tasks = []  # 存储生成的探索任务
+        self.load_knowledge_base()
+    
+    def load_knowledge_base(self):
+        """加载双重标注版原子事实库"""
+        with open(self.knowledge_base_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 解析每条原子事实
+        pattern = r'(F\d{3})\s+(.+?)\s+\[(L[1-4])\]\s+\[([A-Z]+)\]'
+        matches = re.findall(pattern, content)
+        
+        for match in matches:
+            fact_id = match[0]
+            fact_content = match[1]
+            confidence = match[2]
+            source = match[3]
+            
+            self.facts[fact_id] = {
+                'content': fact_content,
+                'confidence': confidence,
+                'source': source
+            }
+            
+            # 统计各置信度数量
+            if confidence == 'L1':
+                self.l1_count += 1
+            elif confidence == 'L2':
+                self.l2_count += 1
+            elif confidence == 'L3':
+                self.l3_count += 1
+            elif confidence == 'L4':
+                self.l4_count += 1
+        
+        print(f"知识库加载完成：共{len(self.facts)}条原子事实")
+        print(f"L1: {self.l1_count} | L2: {self.l2_count} | L3: {self.l3_count} | L4: {self.l4_count}")
+    
+    def scan_l4_facts(self):
+        """扫描所有L4条目，生成探索任务"""
+        print("\n=== 主动学习扫描：L4条目（理论假说/科学争议）===\n")
+        
+        for fact_id, fact_data in self.facts.items():
+            if fact_data['confidence'] == 'L4':
+                task = self.generate_exploration_task(fact_id, fact_data)
+                self.exploration_tasks.append(task)
+                print(f"[{fact_id}] {fact_data['content'][:80]}...")
+                print(f"  搜索查询: {task['search_query']}")
+                print(f"  探索方向: {task['direction']}")
+                print()
+        
+        print(f"共生成 {len(self.exploration_tasks)} 个主动学习任务")
+        return self.exploration_tasks
+    
+    def generate_exploration_task(self, fact_id, fact_data):
+        """根据L4条目内容，生成探索任务"""
+        content = fact_data['content']
+        
+        # 提取关键词
+        keywords = self.extract_keywords(content)
+        
+        # 生成搜索查询
+        search_query = f"latest research on {keywords} water 2026"
+        
+        # 确定探索方向
+        if '假说' in content or '理论' in content:
+            direction = '追踪该理论假说的最新验证实验或反驳证据'
+        elif '争议' in content:
+            direction = '收集正反双方的近期论文，评估争议现状'
+        elif '预测' in content:
+            direction = '搜索是否有新的实验数据支持或否定该预测'
+        else:
+            direction = '搜索该领域最新综述，更新知识状态'
+        
+        return {
+            'fact_id': fact_id,
+            'content': content,
+            'confidence': fact_data['confidence'],
+            'source': fact_data['source'],
+            'keywords': keywords,
+            'search_query': search_query,
+            'direction': direction,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'status': '待执行'
+        }
+    
+    def extract_keywords(self, content):
+        """从条目内容中提取核心关键词"""
+        # 简单实现：提取关键概念
+        keyword_map = {
+            '记忆效应': 'water memory effect',
+            '金属态': 'metallic water',
+            '有序水': 'EZ water exclusion zone',
+            '第四相': 'fourth phase water',
+            '记忆假说': 'water memory hypothesis',
+            '暗能量': 'chameleon dark energy water',
+            '第二临界点': 'water second critical point',
+            '离心力': 'water structure centrifugation',
+            '纳米气泡': 'nanobubble stability water',
+        }
+        
+        for cn_key, en_key in keyword_map.items():
+            if cn_key in content:
+                return en_key
+        
+        return 'water anomalous properties'
+    
+    def print_summary(self):
+        """打印引擎状态摘要"""
+        print("\n=== AGG AI 主动学习引擎 · 状态摘要 ===")
+        print(f"知识库: {len(self.facts)}条原子事实")
+        print(f"置信度分布: L1={self.l1_count} L2={self.l2_count} L3={self.l3_count} L4={self.l4_count}")
+        print(f"主动学习任务: {len(self.exploration_tasks)}个（待执行）")
+        print(f"引擎就绪，等待部署到本地模型")
+
+
+# ========== 运行示例 ==========
+if __name__ == "__main__":
+    # 知识库文件路径（请修改为你的实际路径）
+    kb_path = r"D:\我的知识库\水_原子事实库_双重标注版.txt"
+    
+    try:
+        # 初始化引擎
+        engine = ActiveLearningEngine(kb_path)
+        
+        # 扫描L4条目，生成探索任务
+        engine.scan_l4_facts()
+        
+        # 打印状态摘要
+        engine.print_summary()
+        
+    except FileNotFoundError:
+        print(f"错误：找不到知识库文件 {kb_path}")
+        print("请确认文件路径是否正确，或先运行置信度标注脚本生成双重标注版文件。")
+知识库加载完成：共356条原子事实
+L1: 48 | L2: 239 | L3: 57 | L4: 12
+
+=== 主动学习扫描：L4条目（理论假说/科学争议）===
+
+[F115] 记忆效应（科学争议）...
+  搜索查询: latest research on water memory effect water 2026
+  探索方向: 收集正反双方的近期论文，评估争议现状
+
+[F122] 金属态水：理论预测...
+  搜索查询: latest research on metallic water water 2026
+  探索方向: 追踪该理论假说的最新验证实验或反驳证据
+
+...
+
+共生成 12 个主动学习任务
